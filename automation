@@ -1,0 +1,46 @@
+import re
+from github import Github
+
+# Authenticate to GitHub
+g = Github("enter your accessToken")
+
+# Replace with the repository owner and name
+repo_owner = "a-maniac"
+repo_name = "Neksus"
+
+# Get the repository and the file
+repo = g.get_user(repo_owner).get_repo(repo_name)
+file_path = "neksus1.txt"
+branch_name = "dev"
+file = repo.get_contents(file_path, ref=branch_name)
+
+# Remove the text between <snap></snap> tags and add "link to nexus repo" between them
+decoded_content = file.decoded_content.decode()
+new_content = re.sub(r'<snap>.*</snap>', '<snap>link to nexus repo</snap>', decoded_content)
+
+# Remove the text between <snapRepo></snapRepo> tags and add new content
+# Replace the content between the <snapRepo> tags
+start_tag = "<snapRepo>"
+end_tag = "</snapRepo>"
+start_index = decoded_content.find(start_tag)
+end_index = decoded_content.find(end_tag, start_index + len(start_tag))
+if start_index != -1 and end_index != -1:
+    # Split the original content into two parts
+    before_content = decoded_content[:start_index]
+    after_content = decoded_content[end_index + len(end_tag):]
+    # Replace the content between the tags
+    new_content = before_content + start_tag + "\n\t<id>snapshot</id>\n\t<url>${snapurl}</url>\n\t<layout>default</layout>\n\t<uniqueVersion>false</uniqueVersion>\n" + end_tag + after_content
+else:
+    # No tags found, use the original content
+    new_content = decoded_content
+
+    
+new_content = re.sub(r'<snap>.*</snap>', '<snap>link to nexus repo</snap>', new_content)
+    
+# Update the file contents in the test1 branch
+commit_message = "Update file contents"
+repo.update_file(file_path, commit_message, new_content, file.sha, branch=branch_name)
+
+branch_name = "sit"
+file = repo.get_contents(file_path, ref=branch_name)
+repo.update_file(file_path, commit_message, new_content, file.sha, branch=branch_name)
